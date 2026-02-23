@@ -612,6 +612,12 @@ function initEntrance() {
 
 // ---- Board: "Working From…" (Padlet-style Wall) ----
 
+const SUPABASE_BOARD_BUCKET = 'board-images';
+let supabaseClient = null;
+if (typeof window !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase) {
+  supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+}
+
 // ---- Content Moderation (NSFWJS) ----
 
 let nsfwModel = null;
@@ -665,10 +671,11 @@ async function scanImage(imgElement) {
     const sexy = scores['Sexy'] || 0;
     const combined = porn + hentai + sexy;
 
-    const blocked = porn > 0.1
-      || hentai > 0.1
-      || sexy > 0.25
-      || combined > 0.12;
+    // Only block when the model is clearly confident (avoids blocking dogs, desks, normal photos)
+    const blocked = porn > 0.6
+      || hentai > 0.6
+      || sexy > 0.7
+      || combined > 0.65;
 
     photoApproved = !blocked;
     console.log('[NSFWJS]', blocked ? 'BLOCKED' : 'APPROVED');
@@ -759,72 +766,7 @@ const MOOD_PALETTE = {
   'living the dream':  { bg: '#4a8fa0', color: '#fff' }
 };
 
-const BOARD_POSTS = [
-  {
-    id: 1,
-    image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop',
-    mood: 'caffeinated',
-    caption: 'Double oat latte and a Figma file. The usual.',
-    author: 'Ari M.', avatar: '#b7410e', time: 12,
-    reactions: { '\u2764\ufe0f': 4, '\ud83c\udf89': 1 }
-  },
-  {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=400&h=300&fit=crop',
-    mood: 'golden hour',
-    caption: 'Presidio lawn. Laptop battery at 34%. No regrets.',
-    author: 'Jun T.', avatar: '#c9943e', time: 45,
-    reactions: { '\ud83c\udf89': 3, '\ud83e\udd23': 2 }
-  },
-  {
-    id: 3,
-    image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&h=300&fit=crop',
-    mood: 'cozy',
-    caption: 'Cat claimed the warm spot next to my laptop. Again.',
-    author: 'Priya K.', avatar: '#4e7e8f', time: 120,
-    reactions: { '\u2764\ufe0f': 7, '\ud83d\udc4d': 2, '\ud83e\udd23': 3 }
-  },
-  {
-    id: 4,
-    image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&h=300&fit=crop',
-    mood: 'in transit',
-    caption: 'SFO terminal wifi holding strong. Reviewing PRs before boarding.',
-    author: 'Devon R.', avatar: '#3a6078', time: 180,
-    reactions: { '\ud83d\udc4d': 3 }
-  },
-  {
-    id: 5,
-    image: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=300&fit=crop',
-    mood: 'focused',
-    caption: 'Standing desk, noise-canceling on, deep work mode.',
-    author: 'Sam L.', avatar: '#3a6e52', time: 30,
-    reactions: { '\ud83d\udc4d': 5, '\u2764\ufe0f': 1 }
-  },
-  {
-    id: 6,
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop',
-    mood: 'lazy day',
-    caption: 'Blanket burrito + async standup. This is the way.',
-    author: 'Mel W.', avatar: '#5a7e7a', time: 95,
-    reactions: { '\ud83e\udd23': 4, '\u2764\ufe0f': 2 }
-  },
-  {
-    id: 7,
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop',
-    mood: 'buzzing',
-    caption: 'New co-working spot in Hayes Valley. The energy is real.',
-    author: 'Alex C.', avatar: '#2e7d7e', time: 60,
-    reactions: { '\ud83c\udf89': 2, '\ud83d\udc4d': 1 }
-  },
-  {
-    id: 8,
-    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=300&fit=crop',
-    mood: 'living the dream',
-    caption: 'Hammock, hotspot, and a Notion doc. Peak remote.',
-    author: 'Rio S.', avatar: '#4a8fa0', time: 200,
-    reactions: { '\u2764\ufe0f': 6, '\ud83c\udf89': 4, '\ud83d\udc4d': 2 }
-  }
-];
+let boardPosts = [];
 
 const REACTION_EMOJIS = ['\u2764\ufe0f', '\ud83d\udc4d', '\ud83c\udf89', '\ud83e\udd23'];
 
@@ -832,10 +774,81 @@ let boardReactions = {};
 let userReactions = {};
 
 function initBoardReactions() {
-  BOARD_POSTS.forEach(p => {
-    boardReactions[p.id] = { ...p.reactions };
-    userReactions[p.id] = null;
-  });
+  boardReactions = {};
+  userReactions = {};
+}
+
+function rowToPost(row) {
+  const created = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+  const timeMinutes = Math.floor((Date.now() - created) / 60000);
+  return {
+    id: String(row.id),
+    image: row.image_url || '',
+    mood: row.mood || 'cozy',
+    caption: row.caption || '',
+    author: row.author || 'Anonymous',
+    avatar: row.avatar_color || '#888',
+    time: timeMinutes,
+    reactions: row.reactions && typeof row.reactions === 'object' ? row.reactions : {}
+  };
+}
+
+async function fetchBoardPosts() {
+  const wall = document.getElementById('board-wall');
+  if (!supabaseClient) {
+    if (wall) wall.innerHTML = '<p class="board-error">Configure Supabase in config.js to load posts.</p>';
+    boardPosts = [];
+    return;
+  }
+  try {
+    const { data, error } = await supabaseClient
+      .from('board_posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    boardPosts = (data || []).map(rowToPost);
+    boardReactions = {};
+    userReactions = {};
+    boardPosts.forEach(p => {
+      boardReactions[p.id] = { ...p.reactions };
+      userReactions[p.id] = null;
+    });
+    renderBoard();
+  } catch (err) {
+    console.error('[Board] fetchBoardPosts:', err);
+    boardPosts = [];
+    if (wall) wall.innerHTML = '<p class="board-error">Couldn\'t load posts.</p>';
+  }
+}
+
+function dataURLToBlob(dataURL) {
+  return fetch(dataURL).then(r => r.blob());
+}
+
+async function uploadBoardImage(blobOrFile) {
+  if (!supabaseClient) throw new Error('Supabase not configured');
+  const file = blobOrFile instanceof File ? blobOrFile : new File([blobOrFile], 'image.jpg', { type: 'image/jpeg' });
+  const path = `${crypto.randomUUID()}.jpg`;
+  const { error } = await supabaseClient.storage.from(SUPABASE_BOARD_BUCKET).upload(path, file, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  const { data: urlData } = supabaseClient.storage.from(SUPABASE_BOARD_BUCKET).getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+async function insertBoardPost(payload) {
+  if (!supabaseClient) throw new Error('Supabase not configured');
+  const { data, error } = await supabaseClient.from('board_posts').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function updatePostReactions(postId, reactions) {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient.from('board_posts').update({ reactions }).eq('id', postId);
+  } catch (err) {
+    console.error('[Board] updatePostReactions:', err);
+  }
 }
 
 function boardTimeLabel(minutes) {
@@ -881,7 +894,7 @@ function renderPostCard(post, index) {
 function renderBoard() {
   const wall = document.getElementById('board-wall');
   if (!wall) return;
-  wall.innerHTML = BOARD_POSTS.map((p, i) => renderPostCard(p, i)).join('');
+  wall.innerHTML = boardPosts.map((p, i) => renderPostCard(p, i)).join('');
 }
 
 function handleReactionClick(postId, emoji) {
@@ -901,6 +914,7 @@ function handleReactionClick(postId, emoji) {
   }
 
   renderBoard();
+  updatePostReactions(postId, boardReactions[postId]);
 }
 
 function handleReactionAdd(postId) {
@@ -908,14 +922,14 @@ function handleReactionAdd(postId) {
   handleReactionClick(postId, randomEmoji);
 }
 
-function openBoard() {
+async function openBoard() {
   const overlay = document.getElementById('board-overlay');
   if (!overlay) return;
-  renderBoard();
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
   loadNSFWModel();
+  await fetchBoardPosts();
 }
 
 function closeBoard() {
@@ -929,7 +943,6 @@ function closeBoard() {
 
 let composerPhotoDataURL = null;
 let composerRawImage = null;
-let nextPostId = BOARD_POSTS.length + 1;
 
 const cropState = {
   scale: 1, panX: 0, panY: 0,
@@ -1058,6 +1071,7 @@ function resetComposer() {
   const preview = document.getElementById('composer-photo-preview');
   const placeholder = document.getElementById('composer-photo-placeholder');
   const fileInput = document.getElementById('composer-file');
+  const nameInput = document.getElementById('composer-name');
   const captionInput = document.querySelector('.composer-caption');
   const cropControls = document.getElementById('composer-crop-controls');
   const zoomSlider = document.getElementById('composer-zoom');
@@ -1065,6 +1079,7 @@ function resetComposer() {
   if (preview) { preview.src = ''; preview.hidden = true; preview.style.transform = ''; preview.style.width = ''; preview.style.height = ''; }
   if (placeholder) placeholder.classList.remove('has-photo');
   if (fileInput) fileInput.value = '';
+  if (nameInput) nameInput.value = '';
   if (captionInput) captionInput.value = '';
   if (cropControls) cropControls.hidden = true;
   if (zoomSlider) zoomSlider.value = '100';
@@ -1082,7 +1097,7 @@ function resetComposer() {
   if (submitBtn) submitBtn.disabled = false;
 }
 
-function submitPost() {
+async function submitPost() {
   if (isRateLimited() || !photoApproved || photoScanning) return;
 
   const captionInput = document.querySelector('.composer-caption');
@@ -1091,34 +1106,49 @@ function submitPost() {
 
   if (!caption && !composerPhotoDataURL) return;
 
+  if (!supabaseClient) {
+    const statusEl = document.getElementById('composer-status');
+    if (statusEl) { statusEl.textContent = 'Configure Supabase in config.js to post.'; statusEl.className = 'composer-status status-blocked'; }
+    return;
+  }
+
+  const submitBtn = document.getElementById('composer-submit');
+  const statusEl = document.getElementById('composer-status');
+  if (submitBtn) submitBtn.disabled = true;
+  if (statusEl) { statusEl.textContent = 'Posting…'; statusEl.className = 'composer-status'; }
+
   const moodKeys = Object.keys(MOOD_PALETTE);
   const mood = selectedMood || moodKeys[Math.floor(Math.random() * moodKeys.length)];
   const pal = MOOD_PALETTE[mood];
-
   const croppedImage = composerRawImage ? cropToCanvas() : composerPhotoDataURL;
 
-  const newPost = {
-    id: nextPostId++,
-    image: croppedImage,
-    mood: mood,
-    caption: caption || 'No caption',
-    author: 'You',
-    avatar: pal.bg,
-    time: 0,
-    reactions: {}
-  };
-
-  BOARD_POSTS.unshift(newPost);
-  boardReactions[newPost.id] = {};
-  userReactions[newPost.id] = null;
-
-  incrementDailyPostCount();
-  renderBoard();
-  resetComposer();
-  closeComposer();
-
-  const wall = document.getElementById('board-wall');
-  if (wall) wall.scrollTop = 0;
+  try {
+    let imageUrl = null;
+    if (croppedImage && croppedImage.startsWith('data:')) {
+      const blob = await dataURLToBlob(croppedImage);
+      imageUrl = await uploadBoardImage(blob);
+    }
+    const authorInput = document.getElementById('composer-name');
+    const authorName = authorInput?.value?.trim() || 'Anonymous';
+    await insertBoardPost({
+      image_url: imageUrl,
+      mood,
+      caption: caption || 'No caption',
+      author: authorName,
+      avatar_color: pal.bg,
+      reactions: {}
+    });
+    incrementDailyPostCount();
+    await fetchBoardPosts();
+    resetComposer();
+    closeComposer();
+    const wall = document.getElementById('board-wall');
+    if (wall) wall.scrollTop = 0;
+  } catch (err) {
+    console.error('[Board] submitPost:', err);
+    if (statusEl) { statusEl.textContent = 'Post failed. Try again.'; statusEl.className = 'composer-status status-blocked'; }
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 function renderComposerMoods() {
@@ -1156,12 +1186,12 @@ function initBoard() {
     wall.addEventListener('click', (e) => {
       const reactionBtn = e.target.closest('.post-reaction[data-emoji]');
       if (reactionBtn) {
-        handleReactionClick(Number(reactionBtn.dataset.post), reactionBtn.dataset.emoji);
+        handleReactionClick(reactionBtn.dataset.post, reactionBtn.dataset.emoji);
         return;
       }
       const addBtn = e.target.closest('.post-reaction-add');
       if (addBtn) {
-        handleReactionAdd(Number(addBtn.dataset.post));
+        handleReactionAdd(addBtn.dataset.post);
       }
     });
   }

@@ -71,6 +71,7 @@
             <span class="composer-crop-hint">Drag to reposition</span>
           </div>
           <div class="composer-moods" id="composer-moods"></div>
+          <input class="composer-name" id="composer-name" type="text" placeholder="Your name (optional)" maxlength="40" autocomplete="name">
           <input class="composer-caption" type="text" placeholder="Write a caption&hellip;" maxlength="140">
           <div class="composer-status" id="composer-status"></div>
           <button class="composer-submit" id="composer-submit" type="button">Post</button>
@@ -97,7 +98,7 @@
   <!-- Sound toggle -->
   <div id="sound-area" class="reveal reveal-delay-3">
     <button id="sound-toggle" aria-label="Toggle sound" type="button">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M11 5L6 9H2v6h4l5 4V5z"/>
         <g id="sound-waves">
           <path d="M15.54 8.46a5 5 0 010 7.07" class="sound-wave wave-1"/>
@@ -115,6 +116,8 @@
   <!-- Audio stream -->
   <audio id="lofi-audio" preload="none" crossorigin="anonymous"></audio>
 
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/nsfwjs@4.2.1/dist/browser/nsfwjs.min.js" defer></script>
   <script src="app.js"></script>
 </body>

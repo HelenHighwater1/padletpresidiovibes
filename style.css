@@ -292,7 +292,7 @@ html, body {
 
 #sound-area {
   position: fixed;
-  bottom: clamp(16px, 3vw, 36px);
+  top: clamp(16px, 3vw, 36px);
   right: clamp(16px, 3vw, 36px);
   z-index: 10;
   display: flex;
@@ -302,21 +302,22 @@ html, body {
 }
 
 #sound-toggle {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
   cursor: pointer;
-  padding: 10px;
+  padding: 11px;
   border-radius: 50%;
-  transition: background 0.3s ease, opacity 0.3s ease;
+  transition: background 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 #sound-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
   opacity: 1;
 }
 
@@ -350,7 +351,7 @@ body.audio-playing .wave-2 { animation: wavePulse 2s ease-in-out 0.3s infinite; 
   transition: opacity 0.5s ease;
 }
 
-body.audio-playing .stream-label { opacity: 0.4; }
+body.audio-playing .stream-label { opacity: 0.5; }
 
 #sound-toggle.pulse {
   animation: gentlePulse 1.5s ease 2s 1;
@@ -513,6 +514,12 @@ body.audio-playing .stream-label { opacity: 0.4; }
 .board-wall::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 3px;
+}
+
+.board-error {
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
 }
 
 /* Post card */
@@ -862,6 +869,7 @@ body.audio-playing .stream-label { opacity: 0.4; }
   color: #fff;
 }
 
+.composer-name,
 .composer-caption {
   width: 100%;
   border: none;
@@ -871,17 +879,29 @@ body.audio-playing .stream-label { opacity: 0.4; }
   font-size: 15px;
   color: rgba(255, 255, 255, 0.9);
   background: transparent;
+  display: block;
   outline: none;
-  margin-bottom: 16px;
   transition: border-color 0.2s ease;
 }
 
+.composer-name {
+  margin-bottom: 4px;
+}
+
+.composer-name::placeholder,
 .composer-caption::placeholder {
   color: rgba(255, 255, 255, 0.3);
 }
 
+.composer-name:focus,
 .composer-caption:focus {
   border-color: #2e7d7e;
+}
+
+.composer-caption {
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color 0.2s ease;
 }
 
 .composer-status {

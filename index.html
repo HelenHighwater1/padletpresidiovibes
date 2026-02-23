@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Presidio — Padlet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    html, body { margin: 0; padding: 0; background: #1a1a2e; overflow: hidden; height: 100%; }
+  </style>
+</head>
+<body>
+
+  <!-- Video background -->
+  <div id="video-layer">
+    <img id="poster" src="assets/poster.jpg" alt="">
+    <video id="bg-video" autoplay loop muted playsinline preload="auto">
+      <source src="assets/presidio_vid_opt1.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <!-- Time-of-day color overlay -->
+  <div id="time-overlay"></div>
+
+  <!-- Ambient vignette -->
+  <div id="ambient-overlay"></div>
+
+  <!-- Hotspot layer — JS positions this to match the video's rendered area -->
+  <div id="hotspot-layer">
+    <div class="hotspot hotspot-sky" data-region="sky"></div>
+    <div class="hotspot hotspot-water" data-region="water"></div>
+    <div class="hotspot hotspot-bridge" data-region="bridge"></div>
+    <div class="hotspot hotspot-building" data-action="board"></div>
+  </div>
+
+  <!-- Board overlay — Padlet-style "Working From..." wall -->
+  <div id="board-overlay" class="board-overlay" aria-hidden="true">
+    <div class="board-backdrop"></div>
+    <div class="board-panel">
+      <div class="board-header">
+        <div class="board-header-text">
+          <h1 class="board-title">Working From&hellip;</h1>
+          <p class="board-description">A daily snapshot of where and how we&rsquo;re getting things done. Drop a photo, pick a vibe, say hey.</p>
+        </div>
+        <button class="board-close" aria-label="Close board" type="button">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="board-wall" id="board-wall"></div>
+      <button class="board-compose-btn" id="board-compose-btn" aria-label="Add a post" type="button">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div class="board-composer" id="board-composer" aria-hidden="true">
+        <div class="composer-inner">
+          <button class="composer-close" id="composer-close" aria-label="Close composer" type="button">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <input type="file" id="composer-file" accept="image/*" hidden>
+          <div class="composer-photo-placeholder" id="composer-photo-placeholder">
+            <svg class="composer-photo-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <span class="composer-photo-label">Add a photo</span>
+            <img class="composer-photo-preview" id="composer-photo-preview" alt="" hidden draggable="false">
+          </div>
+          <div class="composer-crop-controls" id="composer-crop-controls" hidden>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            <input type="range" id="composer-zoom" class="composer-zoom-slider" min="0" max="100" value="50" step="1">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            <span class="composer-crop-hint">Drag to reposition</span>
+          </div>
+          <div class="composer-moods" id="composer-moods"></div>
+          <input class="composer-caption" type="text" placeholder="Write a caption&hellip;" maxlength="140">
+          <div class="composer-status" id="composer-status"></div>
+          <button class="composer-submit" id="composer-submit" type="button">Post</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero: temperature + sentiment by default; transforms to region data when you click sky / water / bridge -->
+  <div id="hero" class="reveal">
+    <div class="hero-inner">
+      <div id="hero-headline"></div>
+      <div id="hero-subtitle"></div>
+      <div id="hero-week"></div>
+    </div>
+  </div>
+
+  <!-- Corner: clock + date (clickable for sun times) -->
+  <div id="corner-time" class="reveal reveal-delay-2">
+    <span id="current-time" class="corner-clock"></span>
+    <span id="current-date" class="corner-date"></span>
+  </div>
+
+  <!-- Sound toggle -->
+  <div id="sound-area" class="reveal reveal-delay-3">
+    <button id="sound-toggle" aria-label="Toggle sound" type="button">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+        <g id="sound-waves">
+          <path d="M15.54 8.46a5 5 0 010 7.07" class="sound-wave wave-1"/>
+          <path d="M19.07 4.93a10 10 0 010 14.14" class="sound-wave wave-2"/>
+        </g>
+        <g id="sound-mute">
+          <line x1="23" y1="9" x2="17" y2="15"/>
+          <line x1="17" y1="9" x2="23" y2="15"/>
+        </g>
+      </svg>
+    </button>
+    <span id="stream-label" class="stream-label"></span>
+  </div>
+
+  <!-- Audio stream -->
+  <audio id="lofi-audio" preload="none" crossorigin="anonymous"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/nsfwjs@4.2.1/dist/browser/nsfwjs.min.js" defer></script>
+  <script src="app.js"></script>
+</body>
+</html>

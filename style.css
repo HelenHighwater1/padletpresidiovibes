@@ -1086,8 +1086,8 @@ body.audio-playing .stream-label { opacity: 0.5; }
   }
 
   #hero.hero-region .hero-inner {
-    padding: 0.6rem 0.75rem;
-    max-width: none;
+    padding: 0.75rem 1rem;
+    max-width: 88vw;
   }
 
   #hero.hero-region #hero-headline {
@@ -1095,7 +1095,7 @@ body.audio-playing .stream-label { opacity: 0.5; }
   }
 
   #hero-subtitle {
-    max-width: none;
+    max-width: 88vw;
   }
 
   .board-panel {

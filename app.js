@@ -408,7 +408,9 @@ function initHotspots() {
   document.querySelectorAll('.hotspot[data-region]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      setHeroRegion(el.dataset.region);
+      const region = el.dataset.region;
+      if (region === 'bush' || region === 'tree') return;
+      setHeroRegion(region);
     });
   });
 
@@ -416,6 +418,103 @@ function initHotspots() {
     if (!e.target.closest('.hotspot') && !e.target.closest('#hotspot-layer') && !e.target.closest('#board-overlay')) {
       if (activeHeroRegion !== null) setHeroRegion(null);
     }
+  });
+
+  initBuildingHoverSync();
+  initEasterEggs();
+}
+
+function initBuildingHoverSync() {
+  const parts = document.querySelectorAll('.hotspot-building, .hotspot-building-2');
+  if (!parts.length) return;
+
+  const addHover = () => parts.forEach(p => p.classList.add('building-hover'));
+  const removeHover = () => parts.forEach(p => p.classList.remove('building-hover'));
+
+  parts.forEach(el => {
+    el.addEventListener('mouseenter', addHover);
+    el.addEventListener('mouseleave', removeHover);
+  });
+}
+
+function openEggModal(html) {
+  const modal = document.getElementById('egg-modal');
+  const body = document.getElementById('egg-modal-body');
+  if (!modal || !body) return;
+  body.innerHTML = html;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeEggModal() {
+  const modal = document.getElementById('egg-modal');
+  const body = document.getElementById('egg-modal-body');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  setTimeout(() => { if (body) body.innerHTML = ''; }, 300);
+}
+
+const CROW_SVG = '<svg viewBox="0 0 50 16" width="66" height="21" fill="#111"><path d="M25 13C18 9 8 2 1 1 6 5 14 10 25 14 36 10 44 5 49 1 42 2 32 9 25 13Z"/></svg>';
+
+function spawnCrows() {
+  const layer = document.getElementById('hotspot-layer');
+  if (!layer) return;
+  const count = 3 + Math.floor(Math.random() * 2);
+  const angles = [];
+  const slice = (2 * Math.PI) / count;
+  const baseAngle = Math.random() * Math.PI * 2;
+  for (let i = 0; i < count; i++) {
+    angles.push(baseAngle + slice * i + (Math.random() - 0.5) * 0.6);
+  }
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'easter-crow';
+    el.innerHTML = CROW_SVG;
+    const dist = 180 + Math.random() * 120;
+    const dx = Math.cos(angles[i]) * dist;
+    const dy = -Math.abs(Math.sin(angles[i]) * dist) - 40;
+    const s = 0.7 + Math.random() * 0.6;
+    const dur = 1.4 + Math.random() * 0.6;
+    el.style.setProperty('--crow-dx', dx + 'px');
+    el.style.setProperty('--crow-dy', dy + 'px');
+    el.style.setProperty('--crow-s', s);
+    el.style.setProperty('--crow-dur', dur + 's');
+    el.style.left = (10 + Math.random() * 12) + '%';
+    el.style.top = (45 + Math.random() * 14) + '%';
+    el.style.animationDelay = (i * 0.15) + 's';
+    layer.appendChild(el);
+    el.addEventListener('animationend', (e) => {
+      if (e.animationName === 'crowFly') el.remove();
+    });
+  }
+}
+
+function initEasterEggs() {
+  const bush = document.querySelector('.hotspot-bush');
+  const tree = document.querySelector('.hotspot-tree');
+
+  if (bush) {
+    bush.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEggModal('<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>');
+    });
+  }
+
+  if (tree) {
+    tree.addEventListener('click', (e) => {
+      e.stopPropagation();
+      spawnCrows();
+    });
+  }
+
+  const modal = document.getElementById('egg-modal');
+  if (modal) {
+    modal.querySelector('.egg-modal-backdrop')?.addEventListener('click', closeEggModal);
+    modal.querySelector('.egg-modal-close')?.addEventListener('click', closeEggModal);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('open')) closeEggModal();
   });
 }
 
@@ -1204,13 +1303,12 @@ function initBoard() {
   initBoardReactions();
   renderComposerMoods();
 
-  const buildingHotspot = document.querySelector('.hotspot-building[data-action="board"]');
-  if (buildingHotspot) {
-    buildingHotspot.addEventListener('click', (e) => {
+  document.querySelectorAll('[data-action="board"]').forEach(el => {
+    el.addEventListener('click', (e) => {
       e.stopPropagation();
       openBoard();
     });
-  }
+  });
 
   const overlay = document.getElementById('board-overlay');
   if (overlay) {

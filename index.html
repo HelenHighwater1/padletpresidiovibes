@@ -38,6 +38,9 @@
     <div class="hotspot hotspot-water" data-region="water"></div>
     <div class="hotspot hotspot-bridge" data-region="bridge"></div>
     <div class="hotspot hotspot-building" data-action="board"></div>
+    <div class="hotspot hotspot-building-2" data-action="board"></div>
+    <div class="hotspot hotspot-bush" data-region="bush"></div>
+    <div class="hotspot hotspot-tree" data-region="tree"></div>
   </div>
 
   <!-- Board overlay — Padlet-style "Working From..." wall -->
@@ -81,6 +84,17 @@
           <button class="composer-submit" id="composer-submit" type="button">Post</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Easter egg modal -->
+  <div id="egg-modal" class="egg-modal" aria-hidden="true">
+    <div class="egg-modal-backdrop"></div>
+    <div class="egg-modal-content">
+      <button class="egg-modal-close" aria-label="Close" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div id="egg-modal-body"></div>
     </div>
   </div>
 

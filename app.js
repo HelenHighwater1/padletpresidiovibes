@@ -679,46 +679,6 @@ function initHotspotLayer() {
   else video.addEventListener('loadedmetadata', doSync, { once: true });
 }
 
-// ---- Seamless video loop (overlap to remove pause between loops) ----
-
-const VIDEO_LOOP_OVERLAP_SECONDS = 0.2;
-
-function initSeamlessVideoLoop() {
-  const v1 = document.getElementById('bg-video');
-  const v2 = document.getElementById('bg-video-2');
-  if (!v1 || !v2) return;
-
-  let leading = v1;
-  let triggered = false;
-
-  function onTimeUpdate(e) {
-    const v = e.target;
-    if (v !== leading) return;
-    const duration = v.duration;
-    if (!Number.isFinite(duration) || duration <= 0) return;
-    if (triggered) return;
-    if (v.currentTime < duration - VIDEO_LOOP_OVERLAP_SECONDS) return;
-    triggered = true;
-    const other = v === v1 ? v2 : v1;
-    other.currentTime = 0;
-    other.play().catch(() => {});
-    other.classList.add('active');
-    leading.classList.remove('active');
-    leading = other;
-  }
-
-  function onEnded(e) {
-    const v = e.target;
-    v.pause();
-    v.currentTime = 0;
-    triggered = false;
-  }
-
-  v1.addEventListener('timeupdate', onTimeUpdate);
-  v2.addEventListener('timeupdate', onTimeUpdate);
-  v1.addEventListener('ended', onEnded);
-  v2.addEventListener('ended', onEnded);
-}
 
 // ---- Entrance ----
 
@@ -1450,7 +1410,7 @@ async function init() {
   initHotspotLayer();
   initAudio();
   initEntrance();
-  initSeamlessVideoLoop();
+
   initHotspots();
   initBoard();
 

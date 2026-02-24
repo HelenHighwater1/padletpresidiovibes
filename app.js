@@ -404,6 +404,26 @@ function renderHero() {
   }
 }
 
+function initMobilePulse() {
+  if (window.innerWidth > 768) return;
+
+  const hotspots = Array.from(document.querySelectorAll('.hotspot'));
+  let current = 0;
+
+  function glowNext() {
+    hotspots.forEach(el => {
+      el.classList.remove('pulse-glow');
+      el.classList.add('pulse-dim');
+    });
+    hotspots[current].classList.add('pulse-glow');
+    hotspots[current].classList.remove('pulse-dim');
+    current = (current + 1) % hotspots.length;
+    setTimeout(glowNext, 1800);
+  }
+
+  glowNext();
+}
+
 function initHotspots() {
   document.querySelectorAll('.hotspot[data-region]').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -422,6 +442,7 @@ function initHotspots() {
 
   initBuildingHoverSync();
   initEasterEggs();
+  initMobilePulse();
 }
 
 function initBuildingHoverSync() {
